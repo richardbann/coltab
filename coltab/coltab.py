@@ -182,30 +182,23 @@ class Table:
 
     def render(self, idx, fg=None, bg=None, styles=None):
         typ, row_idx, in_row_idx = self.idx_row_map[idx]
-        inherited_bg = self.bg or bg
         ret = ''
         for col_idx, col_width in enumerate(self.col_widths):
             if not col_width:
                 continue
-            if (row_idx, col_idx) not in self.cells:
-                if typ == TOP:
-                    ret += color('▄' * col_width, bg=bg, fg=inherited_bg)
-                elif typ == MID:
-                    _fg = inherited_bg
-                elif typ == BTM:
-                    ret += color('▀' * col_width, bg=bg, fg=inherited_bg)
-                else:
-                    ret += color(' ' * col_width, bg=inherited_bg)
-            else:
+            cell = None
+            inherited_bg = self.bg or bg
+            if (row_idx, col_idx) in self.cells:
                 cell = self.cells[(row_idx, col_idx)]
-                cell_inherited_bg = cell.bg or inherited_bg
-                if typ == TOP:
-                    ret += color('▄' * col_width, bg=bg, fg=cell_inherited_bg)
-                elif typ == MID:
-                    _fg = cell_inherited_bg
-                elif typ == BTM:
-                    ret += color('▀' * col_width, bg=bg, fg=cell_inherited_bg)
-                else:
+                inherited_bg = cell.bg or self.bg or bg
+            if typ == TOP:
+                ret += color('▄' * col_width, bg=bg, fg=inherited_bg)
+            elif typ == MID:
+                _fg = inherited_bg
+            elif typ == BTM:
+                ret += color('▀' * col_width, bg=bg, fg=inherited_bg)
+            else:
+                if cell:
                     ret += cell.render(
                         in_row_idx,
                         width=col_width,
@@ -213,9 +206,12 @@ class Table:
                         bg=inherited_bg,
                         styles=self.styles or styles
                     )
+                else:
+                    ret += color(' ' * col_width, bg=inherited_bg)
+
             if typ == MID:
                 if (row_idx + 1, col_idx) not in self.cells:
-                    _bg = inherited_bg
+                    _bg = self.bg or bg
                 else:
                     cell = self.cells[(row_idx + 1, col_idx)]
                     _bg = cell.bg or self.bg or bg
