@@ -170,13 +170,12 @@ class Table:
         if self.parent:
             self.parent.recalc()
 
-    def add(self, r, c, cell, recalc=True):
+    def add(self, r, c, cell):
         cell = cell if isinstance(cell, Cell) else Cell(cell)
         cell.parent = self
         cell.recalc()
         self.cells[(r, c)] = cell
-        if recalc:
-            self.recalc()
+        self.recalc()
 
     def lines(self):
         return [(self, idx) for idx in range(self.height)]
@@ -189,10 +188,10 @@ class Table:
                 if not col_width:
                     continue
                 if (row_idx, col_idx) not in self.cells:
-                    ret += color('▄' * col_width, bg=bg, fg=self.bg)
+                    ret += color('▄' * col_width, bg=bg, fg=self.bg or bg)
                     continue
                 cell = self.cells[(row_idx, col_idx)]
-                ret += color('▄' * col_width, bg=bg, fg=cell.bg or self.bg)
+                ret += color('▄' * col_width, bg=bg, fg=cell.bg or self.bg or bg)
             return ret
         if typ == MID:
             ret = ''
@@ -200,13 +199,13 @@ class Table:
                 if not col_width:
                     continue
                 if (row_idx, col_idx) not in self.cells:
-                    _fg = self.bg
+                    _fg = self.bg or bg
                 else:
-                    _fg = self.cells[(row_idx, col_idx)].bg or self.bg
+                    _fg = self.cells[(row_idx, col_idx)].bg or self.bg or bg
                 if (row_idx + 1, col_idx) not in self.cells:
-                    _bg = self.bg
+                    _bg = self.bg or bg
                 else:
-                    _bg = self.cells[(row_idx + 1, col_idx)].bg or self.bg
+                    _bg = self.cells[(row_idx + 1, col_idx)].bg or self.bg or bg
                 ret += color('▀' * col_width, bg=_bg, fg=_fg)
                 continue
             return ret
@@ -216,10 +215,10 @@ class Table:
                 if not col_width:
                     continue
                 if (row_idx, col_idx) not in self.cells:
-                    ret += color('▀' * col_width, bg=bg, fg=self.bg)
+                    ret += color('▀' * col_width, bg=bg, fg=self.bg or bg)
                     continue
                 cell = self.cells[(row_idx, col_idx)]
-                ret += color('▀' * col_width, bg=bg, fg=cell.bg or self.bg)
+                ret += color('▀' * col_width, bg=bg, fg=cell.bg or self.bg or bg)
             return ret
 
         ret = ''
@@ -239,5 +238,8 @@ class Table:
             )
         return ret
 
-    def asstring(self, on=None):
-        return '\n'.join([self.render(i, bg=on) for i in range(self.height)])
+    def asstring(self, bg=None, fg=None, styles=None):
+        return '\n'.join([
+            self.render(i, bg=bg, fg=fg, styles=styles)
+            for i in range(self.height)
+        ])
