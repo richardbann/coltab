@@ -152,3 +152,32 @@ class Tests(unittest.TestCase):
             sha1(t.asstring()),
             'd4d3c980e0c96761b311ffb8c96c6ce0d1092e6e'
         )
+
+    def test_9(self):
+        t1 = Table(styles='bold', bg='yellow', rowsepstyle=HALF)
+        t1.add(0, 0, Cell('abc'))
+        t1.add(0, 2, Cell('x'))
+        t1.add(1, 1, Cell('hello', bg='blue'))
+        t1.add(1, 2, Cell('***', padding=(0, 1)))
+        t1.add(2, 1, Cell('xxxxxxxx'))
+
+        t = Table()
+        t.add(0, 0, Cell('hello', bg='green'))
+        c = Cell('tab:', bg='cyan')
+        c.add(Cell('(this is a simple line)', padding=(0, 1, 0, 0)))
+        c.add(t1)
+        t.add(1, 1, c)
+        t.add(0, 2, Cell('0123456789', padding=1))
+        t.add(1, 2, Cell('012345', padding=(0, 2, 0, 0)))
+        t.add(0, 4, 'far')
+
+        l = Line('0')
+        t1.add(1, 3, l)
+        l.add(Fr('0', fg='black'))
+        l.add(Fr('1111111111', styles='normal'))
+
+        self.print_table(t, bg='magenta')
+        self.assertEqual(
+            sha1(t.asstring(bg='magenta')),
+            '1f7d83a5e39c3af61b13b4e73cd880fae6a76999'
+        )
