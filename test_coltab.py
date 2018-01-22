@@ -1,7 +1,7 @@
 import unittest
 import hashlib
 
-from coltab import Table, Cell, Line, HALF, Fr, RIGHT, CENTER, LEFT
+from coltab import Table, Cell, Line, HALF, Fr, RIGHT, CENTER
 
 
 def sha1(s):

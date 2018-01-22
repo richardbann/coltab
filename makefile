@@ -35,3 +35,16 @@ test:
 		-v "$(CURDIR):/project" \
 		-w "/project" \
 		$(img) coverage html
+################################################################################
+.PHONY: deploy
+## deploy to pypi
+deploy:
+	-rm -rf dist
+	docker run --rm -i -u $(usr) \
+		-v "$(CURDIR):/project" \
+		-w "/project" \
+		$(img) python3 setup.py sdist
+	docker run --rm -i -t -u $(usr) \
+		-v "$(CURDIR):/project" \
+		-w "/project" \
+		$(img) twine upload dist/*
