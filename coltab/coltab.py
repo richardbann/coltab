@@ -39,7 +39,7 @@ class Line:
     def lines(self):
         return [(self, 0)]
 
-    def render(self, idx=0, fg=None, bg=None, styles=None):
+    def render(self, idx=0, fg=None, bg=None, styles=None, align=None):
         base = ''.join([f.render(
             fg=self.fg or fg,
             bg=self.bg or bg,
@@ -48,12 +48,20 @@ class Line:
         return base
 
 
+LEFT, RIGHT, CENTER = (1, 2, 3)
+
+
 class Cell:
     Padding = namedtuple('Padding', ['top', 'right', 'bottom', 'left'])
 
-    def __init__(self, *elements, fg=None, bg=None, styles=None, padding=None):
+    def __init__(
+        self, *elements,
+        fg=None, bg=None, styles=None,
+        padding=None, align=LEFT
+    ):
         self._padding = padding
         self.fg, self.bg, self.styles = fg, bg, styles
+        self.align = align
         self.parent = None
         self.elements = []
         self._lines = []
@@ -67,7 +75,7 @@ class Cell:
     def parse_padding(self):
         p = self._padding
         if p is None and self.parent:
-            p = self.parent.cell_padding
+            p = self.parent.padding
         if p is None:
             return self.Padding(0, 0, 0, 0)
         if isinstance(p, int):
@@ -76,10 +84,17 @@ class Cell:
             return self.Padding(p[0], p[1], p[0], p[1])
         return self.Padding(p[0], p[1], p[2], p[3])
 
+    def adjust_child_cells(self):
+        for c in [e for e in self.elements if isinstance(e, Cell)]:
+            if c.width < self.width:
+                c.width = self.width
+                c.adjust_child_cells()
+
     def recalc(self):
         self.padding = self.parse_padding()
         self.width = max([e.width for e in self.elements] or [0])
         self.width += self.padding.left + self.padding.right
+        self.adjust_child_cells()
         self._lines = []
         for el in self.elements:
             self._lines += el.lines()
@@ -98,20 +113,36 @@ class Cell:
     def lines(self):
         return [(self, idx) for idx in range(self.height)]
 
-    def render(self, idx, width=None, fg=None, bg=None, styles=None):
+    def render(
+        self, idx, width=None,
+        fg=None, bg=None, styles=None, align=LEFT
+    ):
+        bg = self.bg or bg
+        align = self.align or align
         width = self.width if width is None else width
         idx -= self.padding.top
         if idx < len(self._lines) and idx >= 0:
             el, el_idx = self._lines[idx]
             base = el.render(
-                el_idx, fg=self.fg or fg, bg=self.bg or bg,
-                styles=self.styles or styles
+                el_idx, fg=self.fg or fg, bg=bg,
+                styles=self.styles or styles,
+                align=self.align or align
             )
-            lpad = color(' ' * self.padding.left, bg=self.bg or bg)
-            rpad = width - el.width - self.padding.left
-            rpad = color(' ' * rpad, bg=self.bg or bg)
+            # how much to distribute?
+            lpad, rpad = self.padding.left, self.padding.right
+            distribute = width - el.width - lpad - rpad
+            if align == LEFT:
+                rpad += distribute
+            elif align == RIGHT:
+                lpad += distribute
+            else:
+                half = distribute // 2
+                lpad += half
+                rpad += distribute - half
+            lpad = color(' ' * lpad, bg=bg)
+            rpad = color(' ' * rpad, bg=bg)
             return lpad + base + rpad
-        return color(' ' * width, bg=self.bg or bg)
+        return color(' ' * width, bg=bg)
 
 
 TOP, ROW, MID, BTM = range(4)
@@ -121,10 +152,11 @@ HALF = 1
 class Table:
     def __init__(
         self, fg=None, bg=None, styles=None,
-        cell_padding=None, rowsepstyle=None
+        padding=None, rowsepstyle=None, align=LEFT
     ):
         self.fg, self.bg, self.styles = fg, bg, styles
-        self.cell_padding = cell_padding
+        self.align = align
+        self.padding = padding
         self.rowsepstyle = rowsepstyle
         self.parent = None
         self.width = 0
@@ -180,7 +212,7 @@ class Table:
     def lines(self):
         return [(self, idx) for idx in range(self.height)]
 
-    def render(self, idx, fg=None, bg=None, styles=None):
+    def render(self, idx, fg=None, bg=None, styles=None, align=LEFT):
         typ, row_idx, in_row_idx = self.idx_row_map[idx]
         ret = ''
         for col_idx, col_width in enumerate(self.col_widths):
@@ -204,7 +236,8 @@ class Table:
                         width=col_width,
                         fg=self.fg or fg,
                         bg=inherited_bg,
-                        styles=self.styles or styles
+                        styles=self.styles or styles,
+                        align=self.align or align
                     )
                 else:
                     ret += color(' ' * col_width, bg=inherited_bg)
@@ -218,8 +251,8 @@ class Table:
                 ret += color('▀' * col_width, bg=_bg, fg=_fg)
         return ret
 
-    def asstring(self, bg=None, fg=None, styles=None):
+    def asstring(self, bg=None, fg=None, styles=None, align=LEFT):
         return '\n'.join([
-            self.render(i, bg=bg, fg=fg, styles=styles)
+            self.render(i, bg=bg, fg=fg, styles=styles, align=align)
             for i in range(self.height)
         ])

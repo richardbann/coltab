@@ -1,7 +1,7 @@
 import unittest
 import hashlib
 
-from coltab import Table, Cell, Line, HALF, Fr
+from coltab import Table, Cell, Line, HALF, Fr, RIGHT, CENTER, LEFT
 
 
 def sha1(s):
@@ -179,5 +179,64 @@ class Tests(unittest.TestCase):
         self.print_table(t, bg='magenta')
         self.assertEqual(
             sha1(t.asstring(bg='magenta')),
-            '1f7d83a5e39c3af61b13b4e73cd880fae6a76999'
+            '1b746534d00d56a6eb1907232c3c1ad129354628'
+        )
+
+    def test_a(self):
+        t1 = Table(styles='bold', bg='yellow', rowsepstyle=HALF)
+        t1.add(0, 0, Cell('abc'))
+        t1.add(0, 2, Cell('x'))
+        t1.add(1, 1, Cell('hello', bg='blue'))
+        t1.add(1, 2, Cell('***', padding=(0, 1)))
+        t1.add(2, 1, Cell('xxxxxxxx'))
+
+        t = Table()
+        t.add(0, 0, Cell('hello', bg='green'))
+        c = Cell('vvv', bg='cyan', align=CENTER)
+        c.add('this is a line to strech the cell')
+        c.add(t1)
+        c.add(Cell('what', align=RIGHT))
+        t.add(1, 1, c)
+        t.add(0, 2, Cell('0123456789', padding=1))
+        t.add(1, 2, Cell('012345', padding=(0, 2, 0, 0)))
+        t.add(0, 4, 'far')
+
+        self.print_table(t, bg='magenta')
+        self.assertEqual(
+            sha1(t.asstring(bg='magenta')),
+            '8b720f4b8b96a0c875b0ae1cdca333a12f3bfaf4'
+        )
+
+    def test_b(self):
+        t = Table()
+        c = Cell(
+            Line('*************************'),
+            Line('************************'),
+            Line('***************************'),
+            bg='green'
+        )
+
+        sub1 = Cell(
+            Line('11'),
+            Line('111'),
+            align=RIGHT,
+            bg='yellow'
+        )
+        c.add(sub1)
+
+        sub2 = Cell(
+            Line('222222'),
+            Line('22222'),
+            bg='red',
+            align=CENTER
+        )
+
+        t.add(0, 0, c)
+        sub1.add(sub2)
+        sub1.add('1111111111111')
+
+        self.print_table(t)
+        self.assertEqual(
+            sha1(t.asstring()),
+            '838e8b571e13bdc20e22acb79107a41d5fd1b0fd'
         )
